@@ -1,1 +1,15 @@
+# Ignore HDFS data (stored in volumes)
+namenode/
+datanode/
 data/
+
+# Ignore logs
+logs/
+*.log
+
+# Ignore OS-specific files
+.DS_Store
+Thumbs.db
+
+# Ignore any local environment files
+.env

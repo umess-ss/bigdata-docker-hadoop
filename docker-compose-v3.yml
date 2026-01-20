@@ -1,10 +1,8 @@
-version: '3'
+version: '3.7'
 
 services:
   namenode:
     image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
-    networks:
-      - hbase
     volumes:
       - namenode:/hadoop/dfs/name
     environment:
@@ -18,35 +16,31 @@ services:
         condition: on-failure
       placement:
         constraints:
-          - node.hostname == akswnc4.aksw.uni-leipzig.de
+          - node.role == manager   # or your custom constraint like node.hostname == ...
       labels:
-        traefik.docker.network: hbase
-        traefik.port: 50070
+        traefik.docker.network: hadoop
+        traefik.port: 9870
 
   datanode:
     image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
-    networks:
-      - hbase
     volumes:
       - datanode:/hadoop/dfs/data
     env_file:
       - ./hadoop.env
     environment:
-      SERVICE_PRECONDITION: "namenode:50070"
+      SERVICE_PRECONDITION: "namenode:9870"
     deploy:
-      mode: global
+      mode: global   # one per node in swarm
       restart_policy:
         condition: on-failure
       labels:
-        traefik.docker.network: hbase
-        traefik.port: 50075
+        traefik.docker.network: hadoop
+        traefik.port: 9864
 
   resourcemanager:
     image: bde2020/hadoop-resourcemanager:2.0.0-hadoop3.2.1-java8
-    networks:
-      - hbase
     environment:
-      SERVICE_PRECONDITION: "namenode:50070 datanode:50075"
+      SERVICE_PRECONDITION: "namenode:9870 datanode:9864"
     env_file:
       - ./hadoop.env
     deploy:
@@ -56,19 +50,15 @@ services:
         condition: on-failure
       placement:
         constraints:
-          - node.hostname == akswnc4.aksw.uni-leipzig.de
+          - node.role == manager
       labels:
-        traefik.docker.network: hbase
+        traefik.docker.network: hadoop
         traefik.port: 8088
-    healthcheck:
-      disable: true
 
   nodemanager:
     image: bde2020/hadoop-nodemanager:2.0.0-hadoop3.2.1-java8
-    networks:
-      - hbase
     environment:
-      SERVICE_PRECONDITION: "namenode:50070 datanode:50075 resourcemanager:8088"
+      SERVICE_PRECONDITION: "namenode:9870 datanode:9864 resourcemanager:8088"
     env_file:
       - ./hadoop.env
     deploy:
@@ -76,27 +66,27 @@ services:
       restart_policy:
         condition: on-failure
       labels:
-        traefik.docker.network: hbase
+        traefik.docker.network: hadoop
         traefik.port: 8042
 
   historyserver:
     image: bde2020/hadoop-historyserver:2.0.0-hadoop3.2.1-java8
-    networks:
-      - hbase
     volumes:
       - hadoop_historyserver:/hadoop/yarn/timeline
     environment:
-      SERVICE_PRECONDITION: "namenode:50070 datanode:50075 resourcemanager:8088"
+      SERVICE_PRECONDITION: "namenode:9870 datanode:9864 resourcemanager:8088"
     env_file:
       - ./hadoop.env
     deploy:
       mode: replicated
       replicas: 1
+      restart_policy:
+        condition: on-failure
       placement:
         constraints:
-          - node.hostname == akswnc4.aksw.uni-leipzig.de
+          - node.role == manager
       labels:
-        traefik.docker.network: hbase
+        traefik.docker.network: hadoop
         traefik.port: 8188
 
 volumes:
@@ -105,6 +95,6 @@ volumes:
   hadoop_historyserver:
 
 networks:
-  hbase:
-    external:
-      name: hbase
+  default:
+    driver: overlay
+    attachable: true

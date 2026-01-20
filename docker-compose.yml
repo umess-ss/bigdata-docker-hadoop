@@ -1,61 +1,72 @@
-version: "3"
+# Remove version: line (obsolete warning)
 
 services:
   namenode:
-    image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
-    container_name: namenode
-    restart: always
+    image: apache/hadoop:3
+    hostname: namenode
     ports:
       - 9870:9870
-      - 9000:9000
+      - 8020:8020
     volumes:
-      - hadoop_namenode:/hadoop/dfs/name
-    environment:
-      - CLUSTER_NAME=test
-    env_file:
-      - ./hadoop.env
+      - namenode:/hadoop/dfs/name
+      - ./config:/opt/hadoop/etc/hadoop:ro   # your XML configs here
+    # Add environment or command if needed
+    user: root
+    command: hdfs namenode
 
   datanode:
-    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
-    container_name: datanode
-    restart: always
+    image: apache/hadoop:3
+    hostname: datanode
+    ports:
+      - 9864:9864
     volumes:
-      - hadoop_datanode:/hadoop/dfs/data
-    environment:
-      SERVICE_PRECONDITION: "namenode:9870"
-    env_file:
-      - ./hadoop.env
-  
-  resourcemanager:
-    image: bde2020/hadoop-resourcemanager:2.0.0-hadoop3.2.1-java8
-    container_name: resourcemanager
-    restart: always
-    environment:
-      SERVICE_PRECONDITION: "namenode:9000 namenode:9870 datanode:9864"
-    env_file:
-      - ./hadoop.env
+      - datanode:/hadoop/dfs/data
+      - ./config:/opt/hadoop/etc/hadoop:ro
+    depends_on:
+      - namenode
+    user: root
+    command: hdfs datanode
 
-  nodemanager1:
-    image: bde2020/hadoop-nodemanager:2.0.0-hadoop3.2.1-java8
-    container_name: nodemanager
-    restart: always
-    environment:
-      SERVICE_PRECONDITION: "namenode:9000 namenode:9870 datanode:9864 resourcemanager:8088"
-    env_file:
-      - ./hadoop.env
-  
+  resourcemanager:
+    image: apache/hadoop:3
+    hostname: resourcemanager
+    ports:
+      - 8088:8088
+    volumes:
+      - ./config:/opt/hadoop/etc/hadoop:ro
+    depends_on:
+      - namenode
+      - datanode
+    command: yarn resourcemanager
+
+  nodemanager:
+    image: apache/hadoop:3
+    hostname: nodemanager
+    ports:
+      - 8042:8042
+    volumes:
+      - ./config:/opt/hadoop/etc/hadoop:ro
+    depends_on:
+      - resourcemanager
+    command: yarn nodemanager
+
   historyserver:
-    image: bde2020/hadoop-historyserver:2.0.0-hadoop3.2.1-java8
-    container_name: historyserver
-    restart: always
-    environment:
-      SERVICE_PRECONDITION: "namenode:9000 namenode:9870 datanode:9864 resourcemanager:8088"
+    image: apache/hadoop:3
+    hostname: historyserver
+    user: root
+    command: bash -c "mkdir -p /opt/hadoop/logs && mapred --daemon start historyserver && sleep 5 && tail -f /opt/hadoop/logs/*.log || tail -f /dev/null"
+    ports:
+      - "8188:8188"
+      - "19888:19888"
     volumes:
       - hadoop_historyserver:/hadoop/yarn/timeline
-    env_file:
-      - ./hadoop.env
-  
+      - ./config:/opt/hadoop/etc/hadoop:ro
+      - hadoop_history_logs:/opt/hadoop/logs
+    depends_on:
+      - resourcemanager
+
 volumes:
-  hadoop_namenode:
-  hadoop_datanode:
+  namenode:
+  datanode:
+  hadoop_history_logs:
   hadoop_historyserver:

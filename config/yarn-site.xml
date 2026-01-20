@@ -1,0 +1,86 @@
+<?xml version="1.0"?>
+<configuration>
+  <property>
+    <name>yarn.resourcemanager.hostname</name>
+    <value>resourcemanager</value>
+  </property>
+  <property>
+    <name>yarn.nodemanager.aux-services</name>
+    <value>mapreduce_shuffle</value>
+  </property>
+  <property>
+    <name>yarn.nodemanager.env-whitelist</name>
+    <value>JAVA_HOME,HADOOP_COMMON_HOME,HADOOP_HDFS_HOME,HADOOP_CONF_DIR,CLASSPATH_PREPEND_DISTCACHE,HADOOP_YARN_HOME,HADOOP_MAPRED_HOME</value>
+  </property>
+
+  <!-- Minimal CapacityScheduler queue config to satisfy root queue requirement -->
+  <property>
+    <name>yarn.scheduler.capacity.root.queues</name>
+    <value>default</value>
+  </property>
+  <property>
+    <name>yarn.scheduler.capacity.root.default.capacity</name>
+    <value>100</value>
+  </property>
+  <property>
+    <name>yarn.scheduler.capacity.root.default.user-limit-factor</name>
+    <value>1</value>
+  </property>
+  <property>
+    <name>yarn.scheduler.capacity.root.default.maximum-capacity</name>
+    <value>100</value>
+  </property>
+  <property>
+    <name>yarn.scheduler.capacity.root.default.state</name>
+    <value>RUNNING</value>
+  </property>
+  <property>
+    <name>yarn.scheduler.capacity.root.default.acl_submit_applications</name>
+    <value>*</value>
+  </property>
+  <property>
+    <name>yarn.scheduler.capacity.root.default.acl_administer_queue</name>
+    <value>*</value>
+  </property>
+  <property>
+  <name>yarn.timeline-service.enabled</name>
+  <value>true</value>
+</property>
+<property>
+  <name>yarn.timeline-service.hostname</name>
+  <value>historyserver</value>
+</property>
+<!-- Enable Timeline Service v.1 (basic job history) -->
+<property>
+  <name>yarn.timeline-service.enabled</name>
+  <value>true</value>
+</property>
+<property>
+  <name>yarn.timeline-service.hostname</name>
+  <value>historyserver</value>
+</property>
+<property>
+  <name>yarn.timeline-service.webapp.address</name>
+  <value>historyserver:8188</value>
+</property>
+
+<!-- Generic History Server (for MapReduce job history) -->
+<property>
+  <name>mapreduce.jobhistory.address</name>
+  <value>historyserver:10020</value>
+</property>
+<property>
+  <name>mapreduce.jobhistory.webapp.address</name>
+  <value>historyserver:19888</value>
+</property>
+
+<!-- Optional: Store job history in HDFS (recommended) -->
+<property>
+  <name>yarn.nodemanager.remote-app-log-dir</name>
+  <value>/tmp/logs</value>
+</property>
+<property>
+  <name>yarn.log-aggregation-enable</name>
+  <value>true</value>
+</property>
+</configuration>
