@@ -1,63 +1,91 @@
-[![Gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/big-data-europe/Lobby)
+# Hadoop 3.3.6 Multi-Node Cluster on Docker
 
-# Changes
+A production-ready, containerized Hadoop 3.3.6 cluster setup using Docker Compose. This project provides a complete ecosystem including HDFS, YARN, and a MapReduce History Server, optimized for modern development environments.
 
-Version 2.0.0 introduces uses wait_for_it script for the cluster startup
+## 🚀 Architecture
+This setup deploys the following components:
+* **NameNode**: The master node for HDFS.
+* **DataNode**: The slave node for storage.
+* **ResourceManager**: The master for YARN job scheduling.
+* **NodeManager**: The slave for executing tasks.
+* **HistoryServer**: Tracks completed MapReduce jobs.
 
-# Hadoop Docker
 
-## Supported Hadoop Versions
-See repository branches for supported hadoop versions
 
-## Quick Start
+---
 
-To deploy an example HDFS cluster, run:
-```
-  docker-compose up
-```
+## 🛠️ Prerequisites
+* **Docker Desktop** (Windows/Mac/Linux)
+* **Docker Compose**
+* Minimum **4GB RAM** allocated to Docker.
 
-Run example wordcount job:
-```
-  make wordcount
-```
+---
 
-Or deploy in swarm:
-```
-docker stack deploy -c docker-compose-v3.yml hadoop
-```
-
-`docker-compose` creates a docker network that can be found by running `docker network list`, e.g. `dockerhadoop_default`.
-
-Run `docker network inspect` on the network (e.g. `dockerhadoop_default`) to find the IP the hadoop interfaces are published on. Access these interfaces with the following URLs:
-
-* Namenode: http://<dockerhadoop_IP_address>:9870/dfshealth.html#tab-overview
-* History server: http://<dockerhadoop_IP_address>:8188/applicationhistory
-* Datanode: http://<dockerhadoop_IP_address>:9864/
-* Nodemanager: http://<dockerhadoop_IP_address>:8042/node
-* Resource manager: http://<dockerhadoop_IP_address>:8088/
-
-## Configure Environment Variables
-
-The configuration parameters can be specified in the hadoop.env file or as environmental variables for specific services (e.g. namenode, datanode etc.):
-```
-  CORE_CONF_fs_defaultFS=hdfs://namenode:8020
+## 📂 Project Structure
+```text
+.
+├── config/              # Hadoop XML configuration files
+│   ├── core-site.xml
+│   ├── hdfs-site.xml
+│   ├── mapred-site.xml
+│   └── yarn-site.xml
+├── docker-compose.yml   # Docker service definitions
+└── README.md            # Project documentation
 ```
 
-CORE_CONF corresponds to core-site.xml. fs_defaultFS=hdfs://namenode:8020 will be transformed into:
-```
-  <property><name>fs.defaultFS</name><value>hdfs://namenode:8020</value></property>
-```
-To define dash inside a configuration parameter, use triple underscore, such as YARN_CONF_yarn_log___aggregation___enable=true (yarn-site.xml):
-```
-  <property><name>yarn.log-aggregation-enable</name><value>true</value></property>
+
+## 1. Clone the repo
+```bash
+git clone <your-repo-link>
+cd docker-hadoop
 ```
 
-The available configurations are:
-* /etc/hadoop/core-site.xml CORE_CONF
-* /etc/hadoop/hdfs-site.xml HDFS_CONF
-* /etc/hadoop/yarn-site.xml YARN_CONF
-* /etc/hadoop/httpfs-site.xml HTTPFS_CONF
-* /etc/hadoop/kms-site.xml KMS_CONF
-* /etc/hadoop/mapred-site.xml  MAPRED_CONF
+## 2. Start the Cluster
+```bash
+docker compose up -d
+```
 
-If you need to extend some other configuration file, refer to base/entrypoint.sh bash script.
+## 🌐 Web Interfaces
+Once the cluster is running, you can access the following dashboards in your browser:
+* **HDFS NameNode** -> http://localhost:9870
+* **YARN ResourceManager** -> http://localhost:8088
+* **MapReduce History** -> http://localhost:19888
+* **DataNode Stats** -> http://localhost:9864
+
+## Basic Usage Example
+1. The HDFS "Hello World" (File Operations)
+```bash
+# 1. Create a user directory in HDFS
+docker exec -it namenode hdfs dfs -mkdir -p /user/root/testdata
+
+# 2. Upload a file from the container to HDFS
+docker exec -it namenode hdfs dfs -put /etc/protocols /user/root/testdata
+
+# 3. List the file to verify upload
+docker exec -it namenode hdfs dfs -ls /user/root/testdata
+
+# 4. Read the first few lines of the file from HDFS
+docker exec -it namenode hdfs dfs -cat /user/root/testdata/protocols | head -n 10
+```
+2. Run a MapReduce Job (WordCount)
+This is the standard test to ensure YARN (ResourceManager and NodeManager) can schedule and execute tasks.
+```bash 
+# Run the built-in WordCount example on the file we just uploaded
+docker exec -it namenode hadoop jar /opt/hadoop/share/hadoop/mapreduce/hadoop-mapreduce-examples-3.3.6.jar wordcount /user/root/testdata/protocols /user/root/output
+
+# View the results
+docker exec -it namenode hdfs dfs -cat /user/root/output/part-r-00000 | head -n 20
+```
+3. Testing the HistoryServer
+After running the job above, users should verify that the HistoryServer is tracking the task.
+
+Action: Open http://localhost:19888 in your browser.
+
+What to look for: You should see a record of the wordcount job you just ran, showing its completion status and logs.
+
+4. Estimating Pi (CPU Intensive Test)
+This is a fun way to test the cluster's processing power using a Quasi-Monte Carlo method.
+```bash
+# Calculate Pi using 10 maps and 100 samples per map
+docker exec -it namenode hadoop jar /opt/hadoop/share/hadoop/mapreduce/hadoop-mapreduce-examples-3.3.6.jar pi 10 100
+```
