@@ -3,6 +3,7 @@
 services:
   namenode:
     image: apache/hadoop:3
+    container_name: namenode
     hostname: namenode
     ports:
       - 9870:9870
@@ -16,6 +17,7 @@ services:
 
   datanode:
     image: apache/hadoop:3
+    container_name: datanode
     hostname: datanode
     ports:
       - 9864:9864
@@ -29,6 +31,7 @@ services:
 
   resourcemanager:
     image: apache/hadoop:3
+    container_name: resourcemanager
     hostname: resourcemanager
     ports:
       - 8088:8088
@@ -41,6 +44,7 @@ services:
 
   nodemanager:
     image: apache/hadoop:3
+    container_name: nodemanager
     hostname: nodemanager
     ports:
       - 8042:8042
@@ -52,6 +56,7 @@ services:
 
   historyserver:
     image: apache/hadoop:3
+    container_name: historyserver
     hostname: historyserver
     user: root
     command: bash -c "mkdir -p /opt/hadoop/logs && mapred --daemon start historyserver && sleep 5 && tail -f /opt/hadoop/logs/*.log || tail -f /dev/null"
