@@ -10,8 +10,10 @@ services:
       - 8020:8020
     volumes:
       - namenode:/hadoop/dfs/name
-      - ./config:/opt/hadoop/etc/hadoop:ro   # your XML configs here
+      - ./config:/opt/hadoop/etc/hadoop:ro  
     # Add environment or command if needed
+    environment:
+      - HADOOP_CONF_DIR=/opt/hadoop/etc/hadoop
     user: root
     command: hdfs namenode
 
