@@ -1,100 +1,109 @@
-version: '3.7'
+version: '3.8'
 
 services:
   namenode:
-    image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
+    build: ./namenode
+    image: hadoop-namenode:3.3.6
+    container_name: namenode
+    restart: unless-stopped
+    ports:
+      - "9870:9870"
+      - "9000:9000"
+      - "8020:8020"
     volumes:
       - namenode:/hadoop/dfs/name
+      - ./config:/etc/hadoop
     environment:
-      - CLUSTER_NAME=test
+      - CLUSTER_NAME=hadoop-cluster
     env_file:
       - ./hadoop.env
-    deploy:
-      mode: replicated
-      replicas: 1
-      restart_policy:
-        condition: on-failure
-      placement:
-        constraints:
-          - node.role == manager   # or your custom constraint like node.hostname == ...
-      labels:
-        traefik.docker.network: hadoop
-        traefik.port: 9870
+    networks:
+      - hadoop
 
   datanode:
-    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    build: ./datanode
+    image: hadoop-datanode:3.3.6
+    container_name: datanode
+    restart: unless-stopped
+    ports:
+      - "9864:9864"
     volumes:
       - datanode:/hadoop/dfs/data
-    env_file:
-      - ./hadoop.env
+      - ./config:/etc/hadoop
     environment:
       SERVICE_PRECONDITION: "namenode:9870"
-    deploy:
-      mode: global   # one per node in swarm
-      restart_policy:
-        condition: on-failure
-      labels:
-        traefik.docker.network: hadoop
-        traefik.port: 9864
+    env_file:
+      - ./hadoop.env
+    depends_on:
+      - namenode
+    networks:
+      - hadoop
 
   resourcemanager:
-    image: bde2020/hadoop-resourcemanager:2.0.0-hadoop3.2.1-java8
+    build: ./resourcemanager
+    image: hadoop-resourcemanager:3.3.6
+    container_name: resourcemanager
+    restart: unless-stopped
+    ports:
+      - "8088:8088"
+    volumes:
+      - ./config:/etc/hadoop
     environment:
       SERVICE_PRECONDITION: "namenode:9870 datanode:9864"
     env_file:
       - ./hadoop.env
-    deploy:
-      mode: replicated
-      replicas: 1
-      restart_policy:
-        condition: on-failure
-      placement:
-        constraints:
-          - node.role == manager
-      labels:
-        traefik.docker.network: hadoop
-        traefik.port: 8088
+    depends_on:
+      - namenode
+      - datanode
+    networks:
+      - hadoop
 
   nodemanager:
-    image: bde2020/hadoop-nodemanager:2.0.0-hadoop3.2.1-java8
+    build: ./nodemanager
+    image: hadoop-nodemanager:3.3.6
+    container_name: nodemanager
+    restart: unless-stopped
+    ports:
+      - "8042:8042"
+    volumes:
+      - ./config:/etc/hadoop
     environment:
       SERVICE_PRECONDITION: "namenode:9870 datanode:9864 resourcemanager:8088"
     env_file:
       - ./hadoop.env
-    deploy:
-      mode: global
-      restart_policy:
-        condition: on-failure
-      labels:
-        traefik.docker.network: hadoop
-        traefik.port: 8042
+    depends_on:
+      - namenode
+      - datanode
+      - resourcemanager
+    networks:
+      - hadoop
 
   historyserver:
-    image: bde2020/hadoop-historyserver:2.0.0-hadoop3.2.1-java8
+    build: ./historyserver
+    image: hadoop-historyserver:3.3.6
+    container_name: historyserver
+    restart: unless-stopped
+    ports:
+      - "19888:19888"
     volumes:
       - hadoop_historyserver:/hadoop/yarn/timeline
+      - ./config:/etc/hadoop
     environment:
       SERVICE_PRECONDITION: "namenode:9870 datanode:9864 resourcemanager:8088"
     env_file:
       - ./hadoop.env
-    deploy:
-      mode: replicated
-      replicas: 1
-      restart_policy:
-        condition: on-failure
-      placement:
-        constraints:
-          - node.role == manager
-      labels:
-        traefik.docker.network: hadoop
-        traefik.port: 8188
+    depends_on:
+      - namenode
+      - datanode
+      - resourcemanager
+    networks:
+      - hadoop
 
 volumes:
-  datanode:
   namenode:
+  datanode:
   hadoop_historyserver:
 
 networks:
-  default:
-    driver: overlay
-    attachable: true
+  hadoop:
+    driver: bridge
